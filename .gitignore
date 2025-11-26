@@ -43,6 +43,9 @@ ENV/
 *.xlsx
 *.json
 !models/traditional/traditional_models_metrics.json
+!models/bert_embeddings/model_info.json
+!models/bert_mpnet/model_info.json
+!.streamlit/config.toml
 
 # Models (large files)
 *.pt
@@ -60,8 +63,7 @@ logs/
 .env
 .env.local
 
-# Streamlit
-.streamlit/
+# Streamlit config is included
 
 # Testing
 .pytest_cache/
