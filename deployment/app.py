@@ -235,5 +235,155 @@ with tabs[0]:
             if st.button(f"📝 {sentiment} Example", key=f"ex_{sentiment}"):
                 st.text_area("Example", value=example, height=100, disabled=True)
 
-# (Tabs 2-4 remain unchanged for brevity)
 
+# Tab 2: Model Performance
+with tabs[1]:
+    st.header("Model Performance")
+    st.markdown("""
+    <div style='background-color: #1a1a1a; padding: 18px; border-radius: 8px; border: 2px solid #AB63FA;'>
+        <h4 style='margin:0; color: #AB63FA;'>Performance Metrics</h4>
+        <p style='margin:8px 0 0 0; color: #ffffff; font-size: 1rem;'>
+            Comprehensive evaluation metrics for all trained models.
+        </p>
+    </div>
+    <br>
+    """, unsafe_allow_html=True)
+
+    if models and 'metrics' in models:
+        st.subheader("Traditional ML Models")
+        metrics_data = models['metrics']
+        metrics_list = []
+        for model_name, model_metrics in metrics_data.items():
+            if isinstance(model_metrics, dict) and 'accuracy' in model_metrics:
+                metrics_list.append({
+                    'Model': model_name.replace('_', ' ').title(),
+                    'Accuracy': f"{model_metrics['accuracy']:.4f}",
+                    'Precision': f"{model_metrics['precision']:.4f}",
+                    'Recall': f"{model_metrics['recall']:.4f}",
+                    'F1 Score': f"{model_metrics['f1_score']:.4f}"
+                })
+        if metrics_list:
+            metrics_df = pd.DataFrame(metrics_list)
+            st.dataframe(metrics_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("Traditional model metrics not available.")
+
+    if bert_models:
+        st.subheader("BERT Models")
+        bert_metrics_list = []
+        if 'bert_mini_metrics' in bert_models:
+            m = bert_models['bert_mini_metrics']
+            bert_metrics_list.append({
+                'Model': 'BERT (MiniLM)',
+                'Accuracy': f"{m.get('accuracy', 0):.4f}",
+                'Precision': f"{m.get('precision', 0):.4f}",
+                'Recall': f"{m.get('recall', 0):.4f}",
+                'F1 Score': f"{m.get('f1_score', 0):.4f}"
+            })
+        if 'bert_mpnet_metrics' in bert_models:
+            m = bert_models['bert_mpnet_metrics']
+            bert_metrics_list.append({
+                'Model': 'BERT (MPNet)',
+                'Accuracy': f"{m.get('accuracy', 0):.4f}",
+                'Precision': f"{m.get('precision', 0):.4f}",
+                'Recall': f"{m.get('recall', 0):.4f}",
+                'F1 Score': f"{m.get('f1_score', 0):.4f}"
+            })
+        if bert_metrics_list:
+            bert_df = pd.DataFrame(bert_metrics_list)
+            st.dataframe(bert_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("BERT model metrics not available.")
+
+# Tab 3: Model Comparison
+with tabs[2]:
+    st.header("Model Comparison")
+    st.markdown("""
+    <div style='background-color: #1a1a1a; padding: 18px; border-radius: 8px; border: 2px solid #00CC96;'>
+        <h4 style='margin:0; color: #00CC96;'>Visual Comparison</h4>
+        <p style='margin:8px 0 0 0; color: #ffffff; font-size: 1rem;'>
+            Compare model performance with interactive visualizations.
+        </p>
+    </div>
+    <br>
+    """, unsafe_allow_html=True)
+
+    all_metrics = []
+    if models and 'metrics' in models:
+        for model_name, model_metrics in models['metrics'].items():
+            if isinstance(model_metrics, dict) and 'accuracy' in model_metrics:
+                all_metrics.append({
+                    'Model': model_name.replace('_', ' ').title(),
+                    'Type': 'Traditional ML',
+                    'Accuracy': model_metrics['accuracy'],
+                    'F1 Score': model_metrics['f1_score']
+                })
+
+    if bert_models:
+        if 'bert_mini_metrics' in bert_models:
+            m = bert_models['bert_mini_metrics']
+            all_metrics.append({'Model': 'BERT (MiniLM)', 'Type': 'Transformer', 'Accuracy': m.get('accuracy', 0), 'F1 Score': m.get('f1_score', 0)})
+        if 'bert_mpnet_metrics' in bert_models:
+            m = bert_models['bert_mpnet_metrics']
+            all_metrics.append({'Model': 'BERT (MPNet)', 'Type': 'Transformer', 'Accuracy': m.get('accuracy', 0), 'F1 Score': m.get('f1_score', 0)})
+
+    if all_metrics:
+        comparison_df = pd.DataFrame(all_metrics)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Accuracy Comparison")
+            fig_acc = px.bar(comparison_df, x='Model', y='Accuracy', color='Type', color_discrete_map={'Traditional ML': '#AB63FA', 'Transformer': '#00CC96'}, text='Accuracy')
+            fig_acc.update_traces(texttemplate='%{text:.3f}', textposition='outside')
+            fig_acc.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'), height=400)
+            st.plotly_chart(fig_acc, use_container_width=True)
+        with col2:
+            st.subheader("F1 Score Comparison")
+            fig_f1 = px.bar(comparison_df, x='Model', y='F1 Score', color='Type', color_discrete_map={'Traditional ML': '#AB63FA', 'Transformer': '#00CC96'}, text='F1 Score')
+            fig_f1.update_traces(texttemplate='%{text:.3f}', textposition='outside')
+            fig_f1.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'), height=400)
+            st.plotly_chart(fig_f1, use_container_width=True)
+    else:
+        st.info("No model metrics available for comparison.")
+
+# Tab 4: Batch Analysis
+with tabs[3]:
+    st.header("Batch Analysis")
+    st.markdown("""
+    <div style='background-color: #1a1a1a; padding: 18px; border-radius: 8px; border: 2px solid #FFD700;'>
+        <h4 style='margin:0; color: #FFD700;'>Analyze Multiple Texts</h4>
+        <p style='margin:8px 0 0 0; color: #ffffff; font-size: 1rem;'>
+            Enter multiple financial texts (one per line) to analyze sentiment in batch mode.
+        </p>
+    </div>
+    <br>
+    """, unsafe_allow_html=True)
+
+    batch_text = st.text_area("Enter texts (one per line)", height=200, placeholder="Company A reported record profits...")
+    batch_model = st.selectbox("Select Model for Batch", ["XGBoost", "Random Forest", "Logistic Regression", "SVM"], key="batch_model")
+
+    if st.button("Analyze Batch"):
+        if batch_text:
+            texts = [t.strip() for t in batch_text.split('\n') if t.strip()]
+            if texts and models:
+                with st.spinner(f"Analyzing {len(texts)} texts..."):
+                    vectorizer = models["vectorizer"]
+                    model_map = {"XGBoost": "xgboost", "Random Forest": "random_forest", "Logistic Regression": "logistic_regression", "SVM": "svm"}
+                    model = models[model_map[batch_model]]
+                    X = vectorizer.transform(texts)
+                    predictions = model.predict(X)
+                    probabilities = model.predict_proba(X)
+                    label_map = {0: "Negative", 1: "Neutral", 2: "Positive"}
+                    results = []
+                    for i, text in enumerate(texts):
+                        results.append({'Text': text[:100] + '...' if len(text) > 100 else text, 'Sentiment': label_map[predictions[i]], 'Confidence': f"{probabilities[i][predictions[i]] * 100:.1f}%"})
+                    results_df = pd.DataFrame(results)
+                    st.dataframe(results_df, use_container_width=True, hide_index=True)
+                    st.subheader("Summary")
+                    sentiment_counts = pd.Series([label_map[p] for p in predictions]).value_counts()
+                    fig_summary = px.pie(values=sentiment_counts.values, names=sentiment_counts.index, color=sentiment_counts.index, color_discrete_map={"Negative": "#FF4B4B", "Neutral": "#FFD700", "Positive": "#00CC96"})
+                    fig_summary.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='white'))
+                    st.plotly_chart(fig_summary, use_container_width=True)
+            else:
+                st.warning("Models not loaded or no valid texts provided.")
+        else:
+            st.warning("Please enter texts to analyze.")
