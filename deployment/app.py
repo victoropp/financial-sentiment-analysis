@@ -11,9 +11,33 @@ import json
 import os
 import sys
 import joblib
+from pathlib import Path
+
+# Get project root - works both locally and on Streamlit Cloud
+def get_project_root():
+    """Get the project root directory."""
+    # Try to find the project root by looking for key files
+    current = Path(__file__).resolve().parent if '__file__' in dir() else Path.cwd()
+    
+    # If we're in deployment folder, go up one level
+    if current.name == 'deployment':
+        return current.parent
+    
+    # Check if we're at project root
+    if (current / 'models').exists() and (current / 'src').exists():
+        return current
+    
+    # Try parent
+    if (current.parent / 'models').exists():
+        return current.parent
+    
+    # Fallback to cwd
+    return Path.cwd()
+
+PROJECT_ROOT = get_project_root()
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 # Page config
 st.set_page_config(page_title="Financial Sentiment Analysis", layout="wide", page_icon="💹")
@@ -86,17 +110,22 @@ st.markdown("""
 @st.cache_resource
 def load_traditional_models():
     """Load traditional ML models and vectorizer."""
-    models_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', 'traditional')
+    models_dir = PROJECT_ROOT / 'models' / 'traditional'
     models = {}
     try:
-        vectorizer = joblib.load(os.path.join(models_dir, 'tfidf_vectorizer.pkl'))
-        models['vectorizer'] = vectorizer
+        vectorizer_path = models_dir / 'tfidf_vectorizer.pkl'
+        if vectorizer_path.exists():
+            vectorizer = joblib.load(str(vectorizer_path))
+            models['vectorizer'] = vectorizer
+        else:
+            st.warning(f"Vectorizer not found at {vectorizer_path}")
+            return None
         for model_name in ['logistic_regression', 'random_forest', 'xgboost', 'svm']:
-            model_path = os.path.join(models_dir, f"{model_name}_model.pkl")
-            if os.path.exists(model_path):
-                models[model_name] = joblib.load(model_path)
-        metrics_path = os.path.join(models_dir, 'traditional_models_metrics.json')
-        if os.path.exists(metrics_path):
+            model_path = models_dir / f"{model_name}_model.pkl"
+            if model_path.exists():
+                models[model_name] = joblib.load(str(model_path))
+        metrics_path = models_dir / 'traditional_models_metrics.json'
+        if metrics_path.exists():
             with open(metrics_path, 'r') as f:
                 models['metrics'] = json.load(f)
         return models
@@ -107,23 +136,22 @@ def load_traditional_models():
 @st.cache_resource
 def load_bert_models():
     """Load BERT models."""
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
     from bert_classifier import FinancialBERTClassifier
-    models_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models')
+    models_base = PROJECT_ROOT / 'models'
     bert_models = {}
     try:
-        bert_mini_dir = os.path.join(models_base, 'bert_embeddings')
-        if os.path.exists(bert_mini_dir):
-            bert_models['bert_mini'] = FinancialBERTClassifier.load(bert_mini_dir)
-            metrics_path = os.path.join(bert_mini_dir, 'bert_metrics.json')
-            if os.path.exists(metrics_path):
+        bert_mini_dir = models_base / 'bert_embeddings'
+        if bert_mini_dir.exists() and (bert_mini_dir / 'classifier.pkl').exists():
+            bert_models['bert_mini'] = FinancialBERTClassifier.load(str(bert_mini_dir))
+            metrics_path = bert_mini_dir / 'bert_metrics.json'
+            if metrics_path.exists():
                 with open(metrics_path, 'r') as f:
                     bert_models['bert_mini_metrics'] = json.load(f)
-        bert_mpnet_dir = os.path.join(models_base, 'bert_mpnet')
-        if os.path.exists(bert_mpnet_dir):
-            bert_models['bert_mpnet'] = FinancialBERTClassifier.load(bert_mpnet_dir)
-            metrics_path = os.path.join(bert_mpnet_dir, 'bert_mpnet_metrics.json')
-            if os.path.exists(metrics_path):
+        bert_mpnet_dir = models_base / 'bert_mpnet'
+        if bert_mpnet_dir.exists() and (bert_mpnet_dir / 'classifier.pkl').exists():
+            bert_models['bert_mpnet'] = FinancialBERTClassifier.load(str(bert_mpnet_dir))
+            metrics_path = bert_mpnet_dir / 'bert_mpnet_metrics.json'
+            if metrics_path.exists():
                 with open(metrics_path, 'r') as f:
                     bert_models['bert_mpnet_metrics'] = json.load(f)
         return bert_models
